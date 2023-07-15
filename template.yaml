@@ -1,0 +1,187 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Suplements services. Serverless API with TypeScript.
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Runtime: nodejs18.x
+    MemorySize: 128
+    Timeout: 100
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        SUN_TABLE: !Ref SunTable
+
+Resources:
+  GetSuplementsService:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Description: Service that contains the bussines logic for GET Suplements
+      CodeUri: suplements/
+      Handler: getSuplement.lambdaHandler
+      Events:
+        GetSuplements:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /suplements
+            Method: get
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - src/getSuplement.ts
+
+  PutSuplementsService:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Description: Service that contains the bussines logic for PUT Suplements
+      CodeUri: suplements/
+      Handler: putSuplement.lambdaHandler
+      Events:
+        PutSuplement:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /suplements
+            Method: put
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - src/putSuplement.ts
+
+  PutNutrientFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Description: Function that contains the bussines logic for PUT a Nutrient in the DB
+      CodeUri: suplements/
+      Handler: putNutrient.lambdaHandler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: SunTable
+      Events:
+        PutNutrient:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /nutrients
+            Method: put
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - src/putNutrient.ts
+
+  GetNutrientsFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Description: Function that contains the bussines logic for Get a list of Nutrients
+      CodeUri: suplements/
+      Handler: getNutrients.lambdaHandler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: SunTable
+      Events:
+        GetNutrients:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /nutrients
+            Method: get
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - src/getNutrients.ts
+
+  # DynamoDB table to store item: {id: &lt;ID&gt;, name: &lt;NAME&gt;}
+  SunTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: SunTable
+      KeySchema:
+        - AttributeName: Pk
+          KeyType: HASH
+        - AttributeName: Sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: NutrientGenericIndex
+          KeySchema:
+            - AttributeName: NutrientGenericName
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 2
+            WriteCapacityUnits: 2
+        - IndexName: ItemTypeIndex
+          KeySchema:
+            - AttributeName: ItemType
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 2
+            WriteCapacityUnits: 2
+      AttributeDefinitions:
+        - AttributeName: Pk
+          AttributeType: S
+        - AttributeName: Sk
+          AttributeType: S
+        - AttributeName: ItemType
+          AttributeType: S
+        - AttributeName: NutrientGenericName
+          AttributeType: S
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  SuplementsApi:
+    Description: "API Gateway endpoint URL for Prod stage for Suplements service"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
+  GetSuplements:
+    Description: "Suplements GET ServiceFunction ARN"
+    Value: !GetAtt GetSuplementsService.Arn
+  GetSuplementsServiceIamRole:
+    Description: "Implicit IAM Role created for Suplements Service"
+    Value: !GetAtt GetSuplementsServiceRole.Arn
+
+  PutSuplements:
+    Description: "Suplements PUT ServiceFunction ARN"
+    Value: !GetAtt PutSuplementsService.Arn
+  PutSuplementsServiceIamRole:
+    Description: "Implicit IAM Role created for Suplements Service"
+    Value: !GetAtt PutSuplementsServiceRole.Arn
+
+  PutNutrientFunction:
+    Description: "PUT Nutrient Function ARN"
+    Value: !GetAtt PutNutrientFunction.Arn
+  PutNutrientFunctionIamRole:
+    Description: "Implicit IAM Role created for PUT Nutrient Function"
+    Value: !GetAtt PutNutrientFunctionRole.Arn
+
+  GetNutrientsFunction:
+    Description: "GET Nutrient Function ARN"
+    Value: !GetAtt GetNutrientsFunction.Arn
+  GetNutrientsFunctionIamRole:
+    Description: "Implicit IAM Role created for GET Nutrient Function"
+    Value: !GetAtt GetNutrientsFunctionRole.Arn
