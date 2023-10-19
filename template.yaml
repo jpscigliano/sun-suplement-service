@@ -22,11 +22,19 @@ Resources:
       Description: Service that contains the bussines logic for GET Suplements
       CodeUri: suplements/
       Handler: getSuplement.lambdaHandler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: SunTable
       Events:
         GetSuplements:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /suplements
+            Method: get
+        GetSuplementById:
+          Type: Api
+          Properties:
+            Path: /suplements/{id} # Use a path parameter to capture the ID
             Method: get
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
@@ -35,7 +43,7 @@ Resources:
         Target: "es2020"
         Sourcemap: true
         EntryPoints:
-          - src/getSuplement.ts
+          - src/handler/getSuplement.ts
 
   PutSuplementsService:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -43,6 +51,9 @@ Resources:
       Description: Service that contains the bussines logic for PUT Suplements
       CodeUri: suplements/
       Handler: putSuplement.lambdaHandler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: SunTable
       Events:
         PutSuplement:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -56,7 +67,7 @@ Resources:
         Target: "es2020"
         Sourcemap: true
         EntryPoints:
-          - src/putSuplement.ts
+          - src/handler/putSuplement.ts
 
   PutNutrientFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -80,7 +91,7 @@ Resources:
         Target: "es2020"
         Sourcemap: true
         EntryPoints:
-          - src/putNutrient.ts
+          - src/handler/putNutrient.ts
 
   GetNutrientsFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -104,7 +115,7 @@ Resources:
         Target: "es2020"
         Sourcemap: true
         EntryPoints:
-          - src/getNutrients.ts
+          - src/handler/getNutrients.ts
 
   # DynamoDB table to store item: {id: &lt;ID&gt;, name: &lt;NAME&gt;}
   SunTable:

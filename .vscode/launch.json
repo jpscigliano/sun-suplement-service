@@ -3,6 +3,23 @@
         {
             "type": "aws-sam",
             "request": "direct-invoke",
+            "name": "API sun-suplement-service:PutSuplementsService",
+            "invokeTarget": {
+                "target": "api",
+                "templatePath": "${workspaceFolder}/template.yaml",
+                "logicalId": "PutSuplementsService"
+            },
+            "api": {
+                "path": "/",
+                "httpMethod": "get",
+                "payload": {
+                    "json": {}
+                }
+            }
+        },
+        {
+            "type": "aws-sam",
+            "request": "direct-invoke",
             "name": "API Sun-Serverless-API-TypeScript:SuplementsService",
             "invokeTarget": {
                 "target": "api",

@@ -1,4 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { NutrientRepositoryImpl } from '../repository/nutrient.repository';
+import ResponseHandler from '../dto/common/response-handler';
+import middy from '@middy/core';
 
 /**
  *
@@ -10,24 +13,13 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
  *
  */
 
-export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-
-    let httpMethod = event.httpMethod
-    let path = event.path
+const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
-        return {
-            statusCode: 200,
-            body: JSON.stringify({
-                message: 'hello PUT : httpMethod: '+ httpMethod +' path: '+path,
-            }),
-        };
+        const nutrients = await new NutrientRepositoryImpl().GetNutrients();
+        return ResponseHandler.success(nutrients);
     } catch (err) {
-        console.log(err);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({
-                message: 'some error happened',
-            }),
-        };
+        return ResponseHandler.error(err);
     }
 };
+
+export const lambdaHandler = middy(handler);
