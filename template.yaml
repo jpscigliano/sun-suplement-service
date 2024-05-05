@@ -72,7 +72,7 @@ Resources:
   PutNutrientFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      Description: Function that contains the bussines logic for PUT a Nutrient in the DB
+      Description: Function that contains the bussines logic for PUT a Nutrient
       CodeUri: suplements/
       Handler: putNutrient.lambdaHandler
       Policies:
