@@ -1,5 +1,5 @@
 import { groupBy } from '../../common/utils';
-import { NutrientCompound } from '../../dto/nutrientCompound';
+import { NutrientCompound } from '../../dto/nutrientCompoundDto';
 import { SuplementDosisDto, SuplementDto } from '../../dto/suplementDto';
 import { SuplementDosisEntity, SuplementNutrientEntity } from '../entities/suplement.entity';
 

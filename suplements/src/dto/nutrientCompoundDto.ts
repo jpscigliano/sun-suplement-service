@@ -1,4 +1,4 @@
-export class NutrientCompound {
+export class NutrientCompoundDto {
     type: string;
     chemicalName: string;
     genericName: string;

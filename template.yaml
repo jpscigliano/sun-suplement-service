@@ -1,7 +1,15 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: >
-  Suplements services. Serverless API with TypeScript.
+Description: Suplements services. Serverless API with TypeScript.
+
+ 
+Parameters:
+  AppName:
+    Type: String
+    Default: Sun
+  CallbackUrl:
+    Type: String
+    Default: "http://localhost:3000/"
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -16,6 +24,65 @@ Globals:
         SUN_TABLE: !Ref SunTable
 
 Resources:
+###  COGNITO  ###
+  UserPool:
+      Type: 'AWS::Cognito::UserPool'
+      Properties:
+        UserPoolName: !Sub ${AppName}-UserPool
+        Schema:
+          - Name: email
+            AttributeDataType: String
+            Required: true
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+            RequireUppercase: true
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireSymbols: true
+        AutoVerifiedAttributes:
+          - email
+        UsernameAttributes:
+          - email
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: !Sub ${AppName}-UserPoolClient
+      GenerateSecret: false
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURLs:
+        - !Sub ${CallbackUrl}
+      LogoutURLs:
+        - !Sub ${CallbackUrl}
+      AllowedOAuthFlows:
+        - code
+        - implicit #for testing with postman
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+
+  UserPoolDomain: 
+    Type: AWS::Cognito::UserPoolDomain 
+    Properties:
+     UserPoolId: !Ref UserPool 
+     Domain: !Sub "domain"
+
+###  API  ###
+  Api:
+      Type: 'AWS::Serverless::Api'
+      Properties:
+        StageName: Prod
+        Name: !Sub ${AppName}-Api
+        Auth:
+          DefaultAuthorizer: MyCognitoAuthorizer
+          Authorizers:
+            MyCognitoAuthorizer:
+              UserPoolArn: !GetAtt UserPool.Arn
+
   GetSuplementsService:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -31,6 +98,7 @@ Resources:
           Properties:
             Path: /suplements
             Method: get
+            RestApiId: !Ref Api
         GetSuplementById:
           Type: Api
           Properties:
@@ -60,6 +128,7 @@ Resources:
           Properties:
             Path: /suplements
             Method: put
+            RestApiId: !Ref Api
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
@@ -84,6 +153,7 @@ Resources:
           Properties:
             Path: /nutrients
             Method: put
+            RestApiId: !Ref Api
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
@@ -108,6 +178,7 @@ Resources:
           Properties:
             Path: /nutrients
             Method: get
+            RestApiId: !Ref Api
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
@@ -116,6 +187,32 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - src/handler/getNutrients.ts
+
+  PutCustomerIntakeFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Description: Function that contains the bussines logic for PUT an Intake to a Customer
+      CodeUri: suplements/
+      Handler: putCustomerIntake.lambdaHandler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: SunTable
+      Events:
+        PutNutrient:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /intake
+            Method: put
+            RestApiId: !Ref Api
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - src/handler/putCustomerIntake.ts
+
 
   # DynamoDB table to store item: {id: &lt;ID&gt;, name: &lt;NAME&gt;}
   SunTable:
@@ -165,9 +262,13 @@ Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  SuplementsApi:
+  # SuplementsApi:
+  #   Description: "API Gateway endpoint URL for Prod stage for Suplements service"
+  #   Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
+  SuplementsApiUrl:
     Description: "API Gateway endpoint URL for Prod stage for Suplements service"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
 
   GetSuplements:
     Description: "Suplements GET ServiceFunction ARN"
@@ -196,3 +297,12 @@ Outputs:
   GetNutrientsFunctionIamRole:
     Description: "Implicit IAM Role created for GET Nutrient Function"
     Value: !GetAtt GetNutrientsFunctionRole.Arn
+
+  PutCustomerIntakeFunction:
+    Description: "PUT Customer Intake Function ARN"
+    Value: !GetAtt PutCustomerIntakeFunction.Arn
+  PutCustomerIntakeFunctionIamRole:
+    Description: "Implicit IAM Role created for PUT Customer Intake Function"
+    Value: !GetAtt PutCustomerIntakeFunctionRole.Arn
+
+ 
